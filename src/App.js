@@ -31,20 +31,21 @@ const Wallet = () => {
   const [wethBalance, setWethBalance] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  //withdraw
+  const [ethW, setEthW] = useState(0);
+
   const onClick = () => {
     activate(injectedConnector);
   };
 
   useEffect(() => {
     if (active) {
-    //   const web3js = new Web3(
-    //  windows
-    //   );
-      const web3js = new Web3(
-        new Web3.providers.HttpProvider(
-          "https://rinkeby.infura.io/v3/3677788ecbb042f3b941ddd26dc8fc08"
-        )
-      );
+      const web3js = new Web3(window.ethereum);
+      // const web3js = new Web3(
+      //   new Web3.providers.HttpProvider(
+      //     "https://rinkeby.infura.io/v3/3677788ecbb042f3b941ddd26dc8fc08"
+      //   )
+      // );
       console.log("WEB", web3js);
       setweb3(web3js);
       const contractjs = new web3js.eth.Contract(abi, contract_Add);
@@ -69,7 +70,7 @@ const Wallet = () => {
   const onDeposit = async () => {
     setLoading(true);
     console.log("contract", contract.methods);
-    
+
     await contract.methods
       .deposit()
       .send({ from: account, value: web3.utils.toWei(eth.toString()) })
@@ -83,6 +84,35 @@ const Wallet = () => {
           getEthBalance(web3);
           getWethBalance(web3, contract);
           setEth(0);
+          setLoading(false);
+        }
+      })
+      .on("error", function (err) {
+        console.log("error", err);
+        setLoading(false);
+      });
+  };
+
+  const onWithdraw = async () => {
+    console.log("ethw wei", web3.utils.toWei(ethW.toString()));
+    setLoading(true);
+    console.log("contract", contract.methods);
+
+    //
+    await contract.methods
+      .withdraw(web3.utils.toWei(ethW.toString()))
+      .send({ from: account })
+      .on("transactionHash", (hash) => {
+        // hash of tx
+        console.log("hash", hash);
+      })
+      .on("confirmation", function (confirmationNumber, receipt) {
+        if (confirmationNumber === 2) {
+          console.log("confirmationNumber", confirmationNumber);
+          getEthBalance(web3);
+          getWethBalance(web3, contract);
+          setEth(0);
+          setEthW(0);
           setLoading(false);
         }
       })
@@ -108,9 +138,9 @@ const Wallet = () => {
             <div>✅ </div>
             <div>Eth balance: {ethBalance} </div>
             <div>Weth balance: {wethBalance} </div>
-
             {loading ? <p>Loading.........</p> : null}
-
+            <br />
+            <br />
             <input
               type="number"
               placeholder="Enter eth"
@@ -119,6 +149,17 @@ const Wallet = () => {
             />
             <button type="button" onClick={onDeposit}>
               Deposit
+            </button>
+            <br />
+            <br />
+            <input
+              type="number"
+              placeholder="Enter eth"
+              onChange={(e) => setEthW(e.target.value)}
+              value={ethW}
+            />
+            <button type="button" onClick={onWithdraw}>
+              Withdraw
             </button>
           </>
         ) : (
